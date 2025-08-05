@@ -28,6 +28,9 @@ export const slashCommandData = new SlashCommandBuilder()
 			.setDescription("指定メッセージの既読状況を確認")
 			.addStringOption((option) =>
 				option.setName("message_id").setDescription("確認するメッセージID").setRequired(true),
+			)
+			.addRoleOption((option) =>
+				option.setName("filter").setDescription("特定のロールでフィルターする（省略可）").setRequired(false),
 			),
 	)
 	.addSubcommand((subcommand) =>

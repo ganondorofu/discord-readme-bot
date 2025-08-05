@@ -67,6 +67,9 @@ export const checkCommandHandler: Command = {
 			return;
 		}
 
+		// ロールフィルターの取得（オプション）
+		const filterRole = interaction.options.getRole("filter");
+
 		// サーバーの取得
 		const guild = interaction.guild;
 		if (!guild) {
@@ -98,8 +101,21 @@ export const checkCommandHandler: Command = {
 
 		// 既読・未読ユーザーを分類
 		const targetUsers = await getTargetUsers(message);
-		const readUsers = targetUsers.filter((user) => reactedUsers.has(user));
-		const unreadUsers = targetUsers.filter((user) => !reactedUsers.has(user));
+		
+		// ロールフィルターを適用
+		let filteredUsers = targetUsers;
+		if (filterRole) {
+			// メンバーキャッシュを確実にするため、必要に応じてfetch
+			await guild.members.fetch();
+			
+			filteredUsers = targetUsers.filter((user) => {
+				const member = guild.members.cache.get(user.id);
+				return member?.roles.cache.has(filterRole.id);
+			});
+		}
+		
+		const readUsers = filteredUsers.filter((user) => reactedUsers.has(user));
+		const unreadUsers = filteredUsers.filter((user) => !reactedUsers.has(user));
 
 		// ページネーション用のページ変数定義
 		let readPage = 0;
@@ -122,22 +138,30 @@ export const checkCommandHandler: Command = {
 							.join(", ")
 					: "なし";
 
-			return new EmbedBuilder()
+			const embed = new EmbedBuilder()
 				.setTitle("📋 既読状況確認")
 				.setColor(INFO_COLOR)
-				.setTimestamp()
-				.addFields([
-					{
-						name: `✅ 既読 (${readUsers.length}人)`,
-						value: readUsersText,
-						inline: false,
-					},
-					{
-						name: `❌ 未読 (${unreadUsers.length}人)`,
-						value: unreadUsersText,
-						inline: false,
-					},
-				]);
+				.setTimestamp();
+
+			// フィルター情報を追加
+			if (filterRole) {
+				embed.setDescription(`🔍 フィルター: ${filterRole.name} (${filteredUsers.length}/${targetUsers.length}人)`);
+			}
+
+			embed.addFields([
+				{
+					name: `✅ 既読 (${readUsers.length}人)`,
+					value: readUsersText,
+					inline: false,
+				},
+				{
+					name: `❌ 未読 (${unreadUsers.length}人)`,
+					value: unreadUsersText,
+					inline: false,
+				},
+			]);
+
+			return embed;
 		};
 
 		// ページネーションコンポーネントの作成
