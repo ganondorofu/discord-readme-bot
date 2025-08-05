@@ -75,7 +75,7 @@ export const checkCommandHandler: Command = {
 			interaction.options.getRole("filter4"),
 			interaction.options.getRole("filter5"),
 		].filter(role => role !== null);
-		
+
 		// フィルター条件の取得（デフォルトはOR）
 		const filterMode = interaction.options.getString("filter_mode") || "or";
 
@@ -110,27 +110,26 @@ export const checkCommandHandler: Command = {
 
 		// 既読・未読ユーザーを分類
 		const targetUsers = await getTargetUsers(message);
-		
+
 		// ロールフィルターを適用
 		let filteredUsers = targetUsers;
 		if (filterRoles.length > 0) {
 			// メンバーキャッシュを確実にするため、必要に応じてfetch
 			await guild.members.fetch();
-			
+
 			filteredUsers = targetUsers.filter((user) => {
 				const member = guild.members.cache.get(user.id);
 				if (!member) return false;
-				
+
 				if (filterMode === "and") {
 					// AND条件: すべてのロールを持っているかチェック
 					return filterRoles.every(role => member.roles.cache.has(role.id));
-				} else {
-					// OR条件: いずれかのロールを持っているかチェック
-					return filterRoles.some(role => member.roles.cache.has(role.id));
 				}
+				// OR条件: いずれかのロールを持っているかチェック
+				return filterRoles.some(role => member.roles.cache.has(role.id));
 			});
 		}
-		
+
 		const readUsers = filteredUsers.filter((user) => reactedUsers.has(user));
 		const unreadUsers = filteredUsers.filter((user) => !reactedUsers.has(user));
 
@@ -143,16 +142,16 @@ export const checkCommandHandler: Command = {
 			const readUsersText =
 				readUsers.length > 0
 					? readUsers
-							.slice(readPage * USERS_PER_PAGE, (readPage + 1) * USERS_PER_PAGE)
-							.map((user) => `<@${user.id}>`)
-							.join(", ")
+						.slice(readPage * USERS_PER_PAGE, (readPage + 1) * USERS_PER_PAGE)
+						.map((user) => `<@${user.id}>`)
+						.join(", ")
 					: "なし";
 			const unreadUsersText =
 				unreadUsers.length > 0
 					? unreadUsers
-							.slice(unreadPage * USERS_PER_PAGE, (unreadPage + 1) * USERS_PER_PAGE)
-							.map((user) => `<@${user.id}>`)
-							.join(", ")
+						.slice(unreadPage * USERS_PER_PAGE, (unreadPage + 1) * USERS_PER_PAGE)
+						.map((user) => `<@${user.id}>`)
+						.join(", ")
 					: "なし";
 
 			const embed = new EmbedBuilder()
