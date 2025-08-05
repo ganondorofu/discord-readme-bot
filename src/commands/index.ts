@@ -42,5 +42,8 @@ export const slashCommandData = new SlashCommandBuilder()
 					.setName("message_id")
 					.setDescription("リマインダーを送信するメッセージID")
 					.setRequired(true),
+			)
+			.addRoleOption((option) =>
+				option.setName("filter").setDescription("特定のロールでフィルターする（省略可）").setRequired(false),
 			),
 	);

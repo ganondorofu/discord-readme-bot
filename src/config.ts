@@ -6,6 +6,7 @@ config();
 // Discord Bot設定
 export const DISCORD_TOKEN = process.env.DISCORD_TOKEN || "";
 export const CLIENT_ID = process.env.CLIENT_ID || "";
+export const GUILD_ID = process.env.GUILD_ID || ""; // 開発用ギルドID（本番では空にする）
 export const READ_REACTION_EMOJI = process.env.READ_REACTION_EMOJI || "👀";
 export const COMMAND_NAME = process.env.COMMAND_NAME || "readme";
 

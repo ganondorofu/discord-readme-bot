@@ -53,6 +53,9 @@ export const remindCommandHandler: Command = {
 			return;
 		}
 
+		// ロールフィルターの取得（オプション）
+		const filterRole = interaction.options.getRole("filter");
+
 		// サーバーの取得
 		const guild = interaction.guild;
 		if (!guild) {
@@ -96,10 +99,26 @@ export const remindCommandHandler: Command = {
 
 		// 未読ユーザーを特定
 		const targetUsers = await getTargetUsers(message);
-		const unreadUsers = targetUsers.filter((user) => !reactedUsers.has(user));
+		
+		// ロールフィルターを適用
+		let filteredUsers = targetUsers;
+		if (filterRole) {
+			// メンバーキャッシュを確実にするため、必要に応じてfetch
+			await guild.members.fetch();
+			
+			filteredUsers = targetUsers.filter((user) => {
+				const member = guild.members.cache.get(user.id);
+				return member?.roles.cache.has(filterRole.id);
+			});
+		}
+		
+		const unreadUsers = filteredUsers.filter((user) => !reactedUsers.has(user));
 
 		if (unreadUsers.length === 0) {
-			sendResponse(interaction, buildInfoEmbed("未読のユーザーはいません。"));
+			const noUnreadMessage = filterRole 
+				? `${filterRole.name}ロールの未読ユーザーはいません。`
+				: "未読のユーザーはいません。";
+			sendResponse(interaction, buildInfoEmbed(noUnreadMessage));
 			return;
 		}
 
@@ -155,6 +174,13 @@ export const remindCommandHandler: Command = {
 			}
 		}
 
-		sendResponse(interaction, buildSuccessEmbed("未読者にリマインダーを送信しました。"));
+		sendResponse(
+			interaction, 
+			buildSuccessEmbed(
+				filterRole 
+					? `${filterRole.name}ロールの未読者 ${unreadUsers.length}人にリマインダーを送信しました。`
+					: `未読者 ${unreadUsers.length}人にリマインダーを送信しました。`
+			)
+		);
 	},
 };

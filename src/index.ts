@@ -1,7 +1,7 @@
 import { serve } from "@hono/node-server";
 import { ActivityType, Client, GatewayIntentBits, Partials, REST, Routes } from "discord.js";
 import { slashCommandData } from "./commands";
-import { CLIENT_ID, DISCORD_TOKEN, PORT } from "./config";
+import { CLIENT_ID, DISCORD_TOKEN, GUILD_ID, PORT } from "./config";
 import { startHealthCheckCron } from "./cron";
 import { interactionCreateEventHandler } from "./events/interactionCreateEvent";
 import { messageCreateEventHandler } from "./events/messageCreateEvent";
@@ -36,10 +36,25 @@ client.on("ready", async () => {
 	console.log("✅ BOTがログインしました");
 	console.log("🔄 スラッシュコマンドを登録中...");
 	const rest = new REST().setToken(DISCORD_TOKEN);
-	await rest.put(Routes.applicationCommands(CLIENT_ID), {
-		body: [slashCommandData.toJSON()],
-	});
-	console.log("✅ スラッシュコマンドを登録しました");
+	
+	try {
+		if (GUILD_ID) {
+			// 開発用：特定のギルドにのみ登録（即座に反映される）
+			await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
+				body: [slashCommandData.toJSON()],
+			});
+			console.log(`✅ ギルド固有のスラッシュコマンドを登録しました (Guild ID: ${GUILD_ID})`);
+		} else {
+			// 本番用：グローバルに登録（反映に時間がかかる場合がある）
+			await rest.put(Routes.applicationCommands(CLIENT_ID), {
+				body: [slashCommandData.toJSON()],
+			});
+			console.log("✅ グローバルスラッシュコマンドを登録しました");
+		}
+	} catch (error) {
+		console.error("❌ スラッシュコマンドの登録に失敗しました:", error);
+	}
+	
 	console.log("✅ BOTが正常に起動しました！");
 	console.log("============== BOT情報 ==============");
 	console.log(`ID: ${client.user?.id}`);
