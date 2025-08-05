@@ -29,8 +29,30 @@ export const slashCommandData = new SlashCommandBuilder()
 			.addStringOption((option) =>
 				option.setName("message_id").setDescription("確認するメッセージID").setRequired(true),
 			)
+			.addStringOption((option) =>
+				option
+					.setName("filter_mode")
+					.setDescription("フィルター条件（OR: いずれかのロール、AND: すべてのロール）")
+					.setRequired(false)
+					.addChoices(
+						{ name: "OR（いずれかのロールを持つ）", value: "or" },
+						{ name: "AND（すべてのロールを持つ）", value: "and" }
+					),
+			)
 			.addRoleOption((option) =>
-				option.setName("filter").setDescription("特定のロールでフィルターする（省略可）").setRequired(false),
+				option.setName("filter1").setDescription("フィルターするロール1（省略可）").setRequired(false),
+			)
+			.addRoleOption((option) =>
+				option.setName("filter2").setDescription("フィルターするロール2（省略可）").setRequired(false),
+			)
+			.addRoleOption((option) =>
+				option.setName("filter3").setDescription("フィルターするロール3（省略可）").setRequired(false),
+			)
+			.addRoleOption((option) =>
+				option.setName("filter4").setDescription("フィルターするロール4（省略可）").setRequired(false),
+			)
+			.addRoleOption((option) =>
+				option.setName("filter5").setDescription("フィルターするロール5（省略可）").setRequired(false),
 			),
 	)
 	.addSubcommand((subcommand) =>
@@ -43,7 +65,29 @@ export const slashCommandData = new SlashCommandBuilder()
 					.setDescription("リマインダーを送信するメッセージID")
 					.setRequired(true),
 			)
+			.addStringOption((option) =>
+				option
+					.setName("filter_mode")
+					.setDescription("フィルター条件（OR: いずれかのロール、AND: すべてのロール）")
+					.setRequired(false)
+					.addChoices(
+						{ name: "OR（いずれかのロールを持つ）", value: "or" },
+						{ name: "AND（すべてのロールを持つ）", value: "and" }
+					),
+			)
 			.addRoleOption((option) =>
-				option.setName("filter").setDescription("特定のロールでフィルターする（省略可）").setRequired(false),
+				option.setName("filter1").setDescription("フィルターするロール1（省略可）").setRequired(false),
+			)
+			.addRoleOption((option) =>
+				option.setName("filter2").setDescription("フィルターするロール2（省略可）").setRequired(false),
+			)
+			.addRoleOption((option) =>
+				option.setName("filter3").setDescription("フィルターするロール3（省略可）").setRequired(false),
+			)
+			.addRoleOption((option) =>
+				option.setName("filter4").setDescription("フィルターするロール4（省略可）").setRequired(false),
+			)
+			.addRoleOption((option) =>
+				option.setName("filter5").setDescription("フィルターするロール5（省略可）").setRequired(false),
 			),
 	);
