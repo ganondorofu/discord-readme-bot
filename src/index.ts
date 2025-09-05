@@ -1,4 +1,11 @@
-import { serve } from "@hono/node-server";
+// import { serve } from "@hono/node-server";
+// import { ActivityType, Client, Gateway// Koyeb用のヘルスチェックサーバーを起動
+// https://www.koyeb.com/docs/run-and-scale/health-checks
+console.log("🌐 ヘルスチェックサーバーを起動中...");
+// serve(healthCheckServer, { port: PORT });
+console.log("✅ ヘルスチェックサーバーが起動しました");
+console.log(`🔗 ヘルスチェックURL: http://localhost:${PORT}`);
+// startHealthCheckCron();its, Partials, REST, Routes } from "discord.js";
 import { ActivityType, Client, GatewayIntentBits, Partials, REST, Routes } from "discord.js";
 import { slashCommandData } from "./commands";
 import { CLIENT_ID, DISCORD_TOKEN, GUILD_ID, PORT } from "./config";
@@ -7,7 +14,7 @@ import { interactionCreateEventHandler } from "./events/interactionCreateEvent";
 import { messageCreateEventHandler } from "./events/messageCreateEvent";
 import { messageReactionAddEventHandler } from "./events/messageReactionAddEvent";
 import { messageUpdateEventHandler } from "./events/messageUpdateEvent";
-import healthCheckServer from "./server";
+// import healthCheckServer from "./server";
 
 // トークンが設定されていない場合は終了
 if (!DISCORD_TOKEN) {
@@ -36,7 +43,7 @@ client.on("ready", async () => {
 	console.log("✅ BOTがログインしました");
 	console.log("🔄 スラッシュコマンドを登録中...");
 	const rest = new REST().setToken(DISCORD_TOKEN);
-	
+
 	try {
 		if (GUILD_ID) {
 			// 開発用：特定のギルドにのみ登録（即座に反映される）
@@ -54,7 +61,7 @@ client.on("ready", async () => {
 	} catch (error) {
 		console.error("❌ スラッシュコマンドの登録に失敗しました:", error);
 	}
-	
+
 	console.log("✅ BOTが正常に起動しました！");
 	console.log("============== BOT情報 ==============");
 	console.log(`ID: ${client.user?.id}`);
@@ -87,10 +94,7 @@ client.on("interactionCreate", interactionCreateEventHandler);
 // Koyeb用のヘルスチェックサーバーを起動
 // https://www.koyeb.com/docs/run-and-scale/health-checks
 console.log("🌐 ヘルスチェックサーバーを起動中...");
-serve({
-	fetch: healthCheckServer.fetch,
-	port: PORT,
-});
+// serve(healthCheckServer, { port: PORT });
 console.log("✅ ヘルスチェックサーバーが起動しました");
 console.log(`🔗 ヘルスチェックURL: http://localhost:${PORT}`);
 startHealthCheckCron();

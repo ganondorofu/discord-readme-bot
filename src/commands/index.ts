@@ -36,23 +36,8 @@ export const slashCommandData = new SlashCommandBuilder()
 					.setRequired(false)
 					.addChoices(
 						{ name: "OR（いずれかのロールを持つ）", value: "or" },
-						{ name: "AND（すべてのロールを持つ）", value: "and" }
+						{ name: "AND（すべてのロールを持つ）", value: "and" },
 					),
-			)
-			.addRoleOption((option) =>
-				option.setName("filter1").setDescription("フィルターするロール1（省略可）").setRequired(false),
-			)
-			.addRoleOption((option) =>
-				option.setName("filter2").setDescription("フィルターするロール2（省略可）").setRequired(false),
-			)
-			.addRoleOption((option) =>
-				option.setName("filter3").setDescription("フィルターするロール3（省略可）").setRequired(false),
-			)
-			.addRoleOption((option) =>
-				option.setName("filter4").setDescription("フィルターするロール4（省略可）").setRequired(false),
-			)
-			.addRoleOption((option) =>
-				option.setName("filter5").setDescription("フィルターするロール5（省略可）").setRequired(false),
 			),
 	)
 	.addSubcommand((subcommand) =>
@@ -72,22 +57,7 @@ export const slashCommandData = new SlashCommandBuilder()
 					.setRequired(false)
 					.addChoices(
 						{ name: "OR（いずれかのロールを持つ）", value: "or" },
-						{ name: "AND（すべてのロールを持つ）", value: "and" }
+						{ name: "AND（すべてのロールを持つ）", value: "and" },
 					),
-			)
-			.addRoleOption((option) =>
-				option.setName("filter1").setDescription("フィルターするロール1（省略可）").setRequired(false),
-			)
-			.addRoleOption((option) =>
-				option.setName("filter2").setDescription("フィルターするロール2（省略可）").setRequired(false),
-			)
-			.addRoleOption((option) =>
-				option.setName("filter3").setDescription("フィルターするロール3（省略可）").setRequired(false),
-			)
-			.addRoleOption((option) =>
-				option.setName("filter4").setDescription("フィルターするロール4（省略可）").setRequired(false),
-			)
-			.addRoleOption((option) =>
-				option.setName("filter5").setDescription("フィルターするロール5（省略可）").setRequired(false),
 			),
 	);

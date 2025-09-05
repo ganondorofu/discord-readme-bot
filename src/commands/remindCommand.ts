@@ -1,17 +1,26 @@
 import {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
 	type ChatInputCommandInteraction,
 	EmbedBuilder,
 	MessageFlags,
 	PermissionFlagsBits,
+	StringSelectMenuBuilder,
+	StringSelectMenuOptionBuilder,
 } from "discord.js";
 import type { Command } from ".";
 import { buildErrorEmbed, buildInfoEmbed, buildSuccessEmbed } from "../utils/embedUtils";
 import { findMessageInGuild, getTargetUsers } from "../utils/messageUtils";
 
-const sendResponse = async (interaction: ChatInputCommandInteraction, embed: EmbedBuilder) => {
+const sendResponse = async (
+	interaction: ChatInputCommandInteraction,
+	embed: EmbedBuilder,
+	components?: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[],
+) => {
 	try {
 		if (interaction.deferred) {
-			await interaction.editReply({ embeds: [embed] });
+			await interaction.editReply({ embeds: [embed], components: components ? components : [] });
 		} else {
 			await interaction.reply({
 				embeds: [buildErrorEmbed("処理に時間がかかりすぎました。もう一度お試しください。")],
@@ -53,17 +62,8 @@ export const remindCommandHandler: Command = {
 			return;
 		}
 
-		// ロールフィルターの取得（オプション）
-		const filterRoles = [
-			interaction.options.getRole("filter1"),
-			interaction.options.getRole("filter2"),
-			interaction.options.getRole("filter3"),
-			interaction.options.getRole("filter4"),
-			interaction.options.getRole("filter5"),
-		].filter(role => role !== null);
-		
 		// フィルター条件の取得（デフォルトはOR）
-		const filterMode = interaction.options.getString("filter_mode") || "or";
+		const filterMode = interaction.options.getString("filter_mode");
 
 		// サーバーの取得
 		const guild = interaction.guild;
@@ -91,10 +91,52 @@ export const remindCommandHandler: Command = {
 		if (!isAdmin && !isSender) {
 			sendResponse(
 				interaction,
-				buildErrorEmbed("このコマンドを実行するには管理者またはメッセージの投稿者である必要があります。"),
+				buildErrorEmbed(
+					"このコマンドを実行するには管理者またはメッセージの投稿者である必要があります。",
+				),
 			);
 			return;
 		}
+
+		// filter_modeが指定された場合、ロール選択メニューを表示
+		if (filterMode) {
+			const roles = guild.roles.cache
+				.filter((role) => !role.managed && role.name !== "@everyone")
+				.map((role) => new StringSelectMenuOptionBuilder().setLabel(role.name).setValue(role.id));
+
+			if (roles.length === 0) {
+				sendResponse(interaction, buildErrorEmbed("選択可能なロールがありません。"));
+				return;
+			}
+
+			const selectMenu = new StringSelectMenuBuilder()
+				.setCustomId(`role_select_remind_${messageId}_${filterMode}`)
+				.setPlaceholder("フィルターするロールを選択してください（複数選択可）")
+				.setMinValues(1)
+				.setMaxValues(Math.min(roles.length, 25))
+				.addOptions(roles);
+
+			const okButton = new ButtonBuilder()
+				.setCustomId(`role_confirm_remind_${messageId}_${filterMode}`)
+				.setLabel("OK")
+				.setStyle(ButtonStyle.Success);
+
+			const cancelButton = new ButtonBuilder()
+				.setCustomId("role_cancel")
+				.setLabel("キャンセル")
+				.setStyle(ButtonStyle.Danger);
+
+			const row1 = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+			const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(okButton, cancelButton);
+
+			sendResponse(interaction, buildInfoEmbed("フィルターするロールを選択してください。"), [
+				row1,
+				row2,
+			]);
+			return;
+		}
+
+		// filter_modeが指定されていない場合、通常の処理
 
 		// 既読ユーザーを取得（リアクションしたユーザー）
 		const reactedUsers = new Set();
@@ -108,35 +150,14 @@ export const remindCommandHandler: Command = {
 
 		// 未読ユーザーを特定
 		const targetUsers = await getTargetUsers(message);
-		
-		// ロールフィルターを適用
-		let filteredUsers = targetUsers;
-		if (filterRoles.length > 0) {
-			// メンバーキャッシュを確実にするため、必要に応じてfetch
-			await guild.members.fetch();
-			
-			filteredUsers = targetUsers.filter((user) => {
-				const member = guild.members.cache.get(user.id);
-				if (!member) return false;
-				
-				if (filterMode === "and") {
-					// AND条件: すべてのロールを持っているかチェック
-					return filterRoles.every(role => member.roles.cache.has(role.id));
-				} else {
-					// OR条件: いずれかのロールを持っているかチェック
-					return filterRoles.some(role => member.roles.cache.has(role.id));
-				}
-			});
-		}
-		
+
+		// ロールフィルターを適用（通常は適用なし）
+		const filteredUsers = targetUsers;
+
 		const unreadUsers = filteredUsers.filter((user) => !reactedUsers.has(user));
 
 		if (unreadUsers.length === 0) {
-			const modeText = filterMode === "and" ? "AND" : "OR";
-			const noUnreadMessage = filterRoles.length > 0
-				? `${filterRoles.map(role => role.name).join(", ")}ロール（${modeText}条件）の未読ユーザーはいません。`
-				: "未読のユーザーはいません。";
-			sendResponse(interaction, buildInfoEmbed(noUnreadMessage));
+			sendResponse(interaction, buildInfoEmbed("未読のユーザーはいません。"));
 			return;
 		}
 
@@ -193,12 +214,8 @@ export const remindCommandHandler: Command = {
 		}
 
 		sendResponse(
-			interaction, 
-			buildSuccessEmbed(
-				filterRoles.length > 0
-					? `${filterRoles.map(role => role.name).join(", ")}ロール（${filterMode === "and" ? "AND" : "OR"}条件）の未読者 ${unreadUsers.length}人にリマインダーを送信しました。`
-					: `未読者 ${unreadUsers.length}人にリマインダーを送信しました。`
-			)
+			interaction,
+			buildSuccessEmbed(`未読者 ${unreadUsers.length}人にリマインダーを送信しました。`),
 		);
 	},
 };

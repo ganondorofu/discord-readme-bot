@@ -6,11 +6,13 @@ import {
 	ComponentType,
 	EmbedBuilder,
 	MessageFlags,
+	StringSelectMenuBuilder,
+	StringSelectMenuOptionBuilder,
 	type User,
 } from "discord.js";
 import type { Command } from ".";
 import { INFO_COLOR } from "../config";
-import { buildErrorEmbed } from "../utils/embedUtils";
+import { buildErrorEmbed, buildInfoEmbed } from "../utils/embedUtils";
 import { findMessageInGuild, getTargetUsers } from "../utils/messageUtils";
 
 // 1ページあたりの表示ユーザー数
@@ -19,7 +21,7 @@ const USERS_PER_PAGE = 20;
 const sendResponse = async (
 	interaction: ChatInputCommandInteraction,
 	embed: EmbedBuilder,
-	components?: ActionRowBuilder<ButtonBuilder>[],
+	components?: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[],
 ) => {
 	try {
 		if (interaction.deferred) {
@@ -67,17 +69,8 @@ export const checkCommandHandler: Command = {
 			return;
 		}
 
-		// ロールフィルターの取得（オプション）
-		const filterRoles = [
-			interaction.options.getRole("filter1"),
-			interaction.options.getRole("filter2"),
-			interaction.options.getRole("filter3"),
-			interaction.options.getRole("filter4"),
-			interaction.options.getRole("filter5"),
-		].filter(role => role !== null);
-
 		// フィルター条件の取得（デフォルトはOR）
-		const filterMode = interaction.options.getString("filter_mode") || "or";
+		const filterMode = interaction.options.getString("filter_mode");
 
 		// サーバーの取得
 		const guild = interaction.guild;
@@ -97,6 +90,48 @@ export const checkCommandHandler: Command = {
 			);
 			return;
 		}
+
+		// filter_modeが指定された場合、ロール選択メニューを表示
+		if (filterMode) {
+			const roles = guild.roles.cache
+				.filter((role) => !role.managed && role.name !== "@everyone")
+				.map((role) => new StringSelectMenuOptionBuilder().setLabel(role.name).setValue(role.id));
+
+			if (roles.length === 0) {
+				sendResponse(interaction, buildErrorEmbed("選択可能なロールがありません。"));
+				return;
+			}
+
+			const selectMenu = new StringSelectMenuBuilder()
+				.setCustomId(`role_select_check_${messageId}_${filterMode}`)
+				.setPlaceholder("フィルターするロールを選択してください（複数選択可）")
+				.setMinValues(1)
+				.setMaxValues(Math.min(roles.length, 25))
+				.addOptions(roles);
+
+			const okButton = new ButtonBuilder()
+				.setCustomId(`role_confirm_check_${messageId}_${filterMode}`)
+				.setLabel("OK")
+				.setStyle(ButtonStyle.Success);
+
+			const cancelButton = new ButtonBuilder()
+				.setCustomId("role_cancel")
+				.setLabel("キャンセル")
+				.setStyle(ButtonStyle.Danger);
+
+			const row1 = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+			const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(okButton, cancelButton);
+
+			sendResponse(interaction, buildInfoEmbed("フィルターするロールを選択してください。"), [
+				row1,
+				row2,
+			]);
+			return;
+		}
+
+		// filter_modeが指定されていない場合、通常の処理
+		const filterRoles: any[] = [];
+		const effectiveFilterMode: string = "or";
 
 		// 既読ユーザーを取得（リアクションしたユーザー）
 		const reactedUsers = new Set<User>();
@@ -121,12 +156,12 @@ export const checkCommandHandler: Command = {
 				const member = guild.members.cache.get(user.id);
 				if (!member) return false;
 
-				if (filterMode === "and") {
+				if (effectiveFilterMode === "and") {
 					// AND条件: すべてのロールを持っているかチェック
-					return filterRoles.every(role => member.roles.cache.has(role.id));
+					return filterRoles.every((role) => member.roles.cache.has(role.id));
 				}
 				// OR条件: いずれかのロールを持っているかチェック
-				return filterRoles.some(role => member.roles.cache.has(role.id));
+				return filterRoles.some((role) => member.roles.cache.has(role.id));
 			});
 		}
 
@@ -142,16 +177,16 @@ export const checkCommandHandler: Command = {
 			const readUsersText =
 				readUsers.length > 0
 					? readUsers
-						.slice(readPage * USERS_PER_PAGE, (readPage + 1) * USERS_PER_PAGE)
-						.map((user) => `<@${user.id}>`)
-						.join(", ")
+							.slice(readPage * USERS_PER_PAGE, (readPage + 1) * USERS_PER_PAGE)
+							.map((user) => `<@${user.id}>`)
+							.join(", ")
 					: "なし";
 			const unreadUsersText =
 				unreadUsers.length > 0
 					? unreadUsers
-						.slice(unreadPage * USERS_PER_PAGE, (unreadPage + 1) * USERS_PER_PAGE)
-						.map((user) => `<@${user.id}>`)
-						.join(", ")
+							.slice(unreadPage * USERS_PER_PAGE, (unreadPage + 1) * USERS_PER_PAGE)
+							.map((user) => `<@${user.id}>`)
+							.join(", ")
 					: "なし";
 
 			const embed = new EmbedBuilder()
@@ -161,9 +196,11 @@ export const checkCommandHandler: Command = {
 
 			// フィルター情報を追加
 			if (filterRoles.length > 0) {
-				const roleNames = filterRoles.map(role => role.name).join(", ");
-				const modeText = filterMode === "and" ? "AND" : "OR";
-				embed.setDescription(`🔍 フィルター: ${roleNames} (${modeText}条件) (${filteredUsers.length}/${targetUsers.length}人)`);
+				const roleNames = filterRoles.map((role) => role.name).join(", ");
+				const modeText = effectiveFilterMode === "and" ? "AND" : "OR";
+				embed.setDescription(
+					`🔍 フィルター: ${roleNames} (${modeText}条件) (${filteredUsers.length}/${targetUsers.length}人)`,
+				);
 			}
 
 			embed.addFields([
